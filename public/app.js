@@ -630,25 +630,31 @@
       async forklaring(inn, signal, vedTekst) {
         const r = await post("/api/forklaring", { plan: inn.plan, antallAar: inn.antallAar, forsteAar: inn.forsteAar }, signal);
         if (!r.ok) throw await feilFra(r);
-        // Svaret er en strøm av hendelser «data: "tekstbit"» skilt med tom linje
+        // Svaret er strømmen fra Claude API (server-sent events), sendt rett gjennom serverfunksjonen.
+        // Hver hendelse er en blokk med linjene «event: …» og «data: {json}», skilt med en tom linje.
         const leser = r.body.getReader(), dek = new TextDecoder();
-        let tekst = "", rest = "";
+        let tekst = "", rest = "", brudd = false;
         try {
           for (;;) {
             const { done, value } = await leser.read();
             if (done) break;
-            rest += dek.decode(value, { stream: true });
+            rest += dek.decode(value, { stream: true }).replace(/\r\n/g, "\n");
             const deler = rest.split("\n\n");
             rest = deler.pop();
             for (const d of deler) {
-              if (!d.startsWith("data: ")) continue;
-              try { tekst += JSON.parse(d.slice(6)); } catch (e) { /* hopp over en ødelagt bit */ }
+              const linje = d.split("\n").find((l) => l.startsWith("data:"));
+              if (!linje) continue;
+              let h;
+              try { h = JSON.parse(linje.slice(5)); } catch (e) { continue; }
+              if (h.type === "content_block_delta" && h.delta && h.delta.type === "text_delta") tekst += h.delta.text;
+              else if (h.type === "error") brudd = true;
             }
-            vedTekst(tekst);
+            if (tekst) vedTekst(tekst); // «Tenker …» står til den første teksten kommer
           }
         } catch (e) {
           throw { code: signal && signal.aborted ? "cancelled" : "brudd", text: tekst };
         }
+        if (brudd) throw { code: "brudd", text: tekst };
         if (!tekst.trim()) throw { code: "tom" };
         return { text: tekst };
       }

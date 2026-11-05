@@ -2,7 +2,7 @@
    Nettsiden ligger som vanlige filer i public/. Denne filen svarer bare på /api/…:
      GET  /api/status     – er KI-delen slått på?
      POST /api/arealer    – Claude finner dyrkningsarealene i brukerens beskrivelse (svar som JSON)
-     POST /api/forklaring – Claude forklarer planen (svaret strømmes som ren tekst)
+     POST /api/forklaring – Claude forklarer planen (strømmen fra Claude sendes rett videre)
    API-nøkkelen ligger som hemmeligheten ANTHROPIC_API_KEY hos Cloudflare og vises aldri i nettleseren.
    Instruksene til Claude settes sammen her (public/prompter.js), så siden ikke kan brukes som en åpen Claude-tjeneste. */
 import KB from "../public/kb.js";
@@ -148,35 +148,11 @@ async function forklaring(body, env) {
   });
   if (!r.ok) return claudeFeil(r);
 
-  // Strømmen fra Claude (server-sent events) gjøres om til en enklere strøm der hver hendelse er en tekstbit:
-  //   data: "tekst"\n\n
-  // Formatet text/event-stream gjør at Cloudflare sender bitene videre med en gang i stedet for å samle dem opp.
-  const kilde = r.body.getReader();
-  const dekoder = new TextDecoder();
-  const koder = new TextEncoder();
-  let rest = "";
-  const strom = new ReadableStream({
-    async pull(kontroll) {
-      for (;;) {
-        const { done, value } = await kilde.read();
-        if (done) { kontroll.close(); return; }
-        rest += dekoder.decode(value, { stream: true });
-        const linjer = rest.split("\n");
-        rest = linjer.pop();
-        let ut = "";
-        for (const linje of linjer) {
-          if (!linje.startsWith("data:")) continue;
-          let h;
-          try { h = JSON.parse(linje.slice(5)); } catch { continue; }
-          if (h.type === "content_block_delta" && h.delta && h.delta.type === "text_delta") ut += h.delta.text;
-          else if (h.type === "error") console.error("Feil i strømmen fra Claude", h.error && h.error.type);
-        }
-        if (ut) { kontroll.enqueue(koder.encode(`data: ${JSON.stringify(ut)}\n\n`)); return; }
-      }
-    },
-    cancel() { return kilde.cancel(); }
-  });
-  return new Response(strom, {
+  // Strømmen fra Claude (server-sent events) sendes rett videre til nettleseren, som plukker ut teksten.
+  // Serverfunksjonen gjør ingen jobb per bit: gratisplanen hos Cloudflare gir bare 10 ms regnetid per forespørsel,
+  // og det rekker ikke til å pakke om hundrevis av små biter (da ble forklaringen kuttet midt i).
+  // text/event-stream og no-transform gjør at Cloudflare sender bitene videre med en gang uten å komprimere dem.
+  return new Response(r.body, {
     headers: { "content-type": "text/event-stream; charset=utf-8", "cache-control": "no-store, no-transform", "x-content-type-options": "nosniff" }
   });
 }
