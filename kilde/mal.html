@@ -1793,6 +1793,8 @@ ${fakta}`;
   }
 
   /* ---------- Last ned planen som PDF ---------- */
+  const NETTSTED = "www.vekstskifte.no", NETTSTED_URL = "https://vekstskifte.no/";
+  const ORGNR = "936 885 403", ORGNR_URL = "https://virksomhet.brreg.no/nb/oppslag/enheter/936885403";
   let nedlasting = null;
   function visPdfKnapp() { $("pdf-rad").hidden = !(nedlasting && S.plan && S.plan.ok); }
   function lastJsPdf() {
@@ -1827,16 +1829,23 @@ ${fakta}`;
       doc.setFillColor(220, 174, 56); doc.rect(M, 13.2, 10, 0.8, "F");
       settF("bold", 16, F.hvit); doc.text("Vekstskifteplan", M, 10.5);
       settF("normal", 8.5, [211, 223, 209]); doc.text(pdfTekst(undertittel), M + 13, 14.2);
-      settF("normal", 8.5, [211, 223, 209]); doc.text(pdfTekst("Vekstskiftehjelpen · " + dato), W - M, 10.5, { align: "right" });
+      settF("bold", 9, F.hvit);
+      doc.textWithLink(NETTSTED, W - M - doc.getTextWidth(NETTSTED), 10.5, { url: NETTSTED_URL });
+      settF("normal", 8.5, [211, 223, 209]); doc.text(pdfTekst("Vekstskiftehjelpen · " + dato), W - M, 14.6, { align: "right" });
     }
     function bunntekst() {
       const n = doc.getNumberOfPages();
       for (let i = 1; i <= n; i++) {
         doc.setPage(i);
-        doc.setDrawColor(...F.line); doc.setLineWidth(0.2); doc.line(M, H - 10, W - M, H - 10);
+        doc.setDrawColor(...F.line); doc.setLineWidth(0.2); doc.line(M, H - 11.5, W - M, H - 11.5);
         settF("normal", 7, F.muted);
-        doc.text(pdfTekst((NETT ? "Testversjon" : "Prototype") + ". Planen er laget av faste regler fra en kunnskapsbase med norske fagkilder (" + KB.versjon + "), ikke gjennomgått av fagfolk ennå. Forklaringen er skrevet av Claude (KI)."), M, H - 6);
-        doc.text("Side " + i + " av " + n, W - M, H - 6, { align: "right" });
+        doc.text(pdfTekst((NETT ? "Testversjon" : "Prototype") + ". Planen er laget av faste regler fra en kunnskapsbase med norske fagkilder (" + KB.versjon + "), ikke gjennomgått av fagfolk ennå. Forklaringen er skrevet av Claude (KI)."), M, H - 7.8);
+        doc.text("Side " + i + " av " + n, W - M, H - 7.8, { align: "right" });
+        // Ansvarlig og nettsted, med lenker
+        const ansv = pdfTekst("Ansvarlig: Grønt arbeid Nordvik, org.nr. ");
+        settF("normal", 7, F.ink); doc.text(ansv, M, H - 4.5);
+        doc.textWithLink(ORGNR, M + doc.getTextWidth(ansv), H - 4.5, { url: ORGNR_URL });
+        settF("bold", 7, F.gronn); doc.textWithLink(NETTSTED, W - M - doc.getTextWidth(NETTSTED), H - 4.5, { url: NETTSTED_URL });
       }
     }
     const ny = (undertittel) => { doc.addPage(); side++; topp(undertittel); return 28; };
@@ -1967,7 +1976,7 @@ ${fakta}`;
       }
     }
     // Henvisning til kunnskapsdelen, bare hvis den får plass på siden
-    if (y + 8 < BUNN) { y += 3; avsnitt("Les hvorfor vekstskifte er viktig, og hvilke kilder planen bygger på, under «Lær om vekstskifte» i Vekstskiftehjelpen.", "italic", 8.5, F.muted); }
+    if (y + 8 < BUNN) { y += 3; avsnitt("Les hvorfor vekstskifte er viktig, og hvilke kilder planen bygger på, under «Lær om vekstskifte» på " + NETTSTED + ".", "italic", 8.5, F.muted); }
     bunntekst();
     return doc.output("blob");
   }
