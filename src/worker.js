@@ -74,6 +74,12 @@ function sesong(startAarFraSiden) {
 const tall = (x) => { const v = Number(x); return Number.isFinite(v) && v > 0 && v < 1000 ? v : null; };
 const heltall = (x, min, max, standard) => { const v = Number(x); return Number.isInteger(v) && v >= min && v <= max ? v : standard; };
 
+// Sonnet 5.5 tenker først som standard, og tenkingen teller med i max_tokens. Oppgavene her er enkle,
+// så tenking på forhånd slås av («between_tools» er det laveste Sonnet 5.5 tillater). Svarene blir raskere og billigere.
+function tenking(modell) {
+  return modell === "claude-sonnet-5-5" ? { thinking: { type: "between_tools" } } : {};
+}
+
 async function kallClaude(env, payload) {
   return fetch(env.ANTHROPIC_URL || API_URL, {
     method: "POST",
@@ -112,9 +118,11 @@ async function arealer(body, env) {
       bredde: tall(a.bredde)
     }));
 
+  const modell = env.MODELL || PR.MODELL;
   const r = await kallClaude(env, {
-    model: env.MODELL || PR.MODELL,
-    max_tokens: 3000,
+    model: modell,
+    ...tenking(modell),
+    max_tokens: 4000,
     system: PR.arealInstruks(KB, sesong(body.startAar)),
     messages: [{ role: "user", content: PR.arealMelding({ forrige: forrige.length ? JSON.stringify(forrige) : "(ingen ennå)", tekst }) }],
     output_config: { format: { type: "json_schema", schema: PR.arealSkjema(KB) } }
@@ -139,9 +147,11 @@ async function forklaring(body, env) {
   const { startAar } = sesong(body.forsteAar);
   const antallAar = heltall(body.antallAar, 1, 13, 4);
 
+  const modell = env.MODELL || PR.MODELL;
   const r = await kallClaude(env, {
-    model: env.MODELL || PR.MODELL,
-    max_tokens: 1000,
+    model: modell,
+    ...tenking(modell),
+    max_tokens: 2000,
     stream: true,
     system: PR.forklarInstruks({ antallAar, forsteAar: startAar }),
     messages: [{ role: "user", content: plan }]
