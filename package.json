@@ -1,0 +1,14 @@
+{
+  "name": "vekstskifte",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Vekstskiftehjelpen – vekstskifteplan for kjøkkenhager og markedshager (vekstskifte.no)",
+  "scripts": {
+    "bygg": "python3 kilde/bygg.py",
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4.40.0"
+  }
+}
