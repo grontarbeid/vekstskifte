@@ -812,6 +812,7 @@
         const for_ = JSON.stringify({ arealer: S.arealer, iAar: S.iAar, onsker: S.onsker, forstaelse: S.forstaelse, sporsmal: S.sporsmal });
         try {
           brukArealSvar(svar && typeof svar === "object" ? svar : {});
+          tell(S.arealer.length ? "ki-arealer" : "ki-arealer-ingen");
           if (!S.arealer.length) visFeil("Fant ingen dyrkningsarealer i teksten. Skriv for eksempel hvor stor åkeren er eller hvor mange pallekarmer du har, eller trykk «Legg til et areal selv».");
         } catch (e) {
           Object.assign(S, JSON.parse(for_));
@@ -871,6 +872,7 @@ ${fakta}`;
       const r = await ki.forklaring({ plan: forklarData(), antallAar: S.plan.aar.length, forsteAar: S.plan.aar[0] }, ctl.signal, visForklaring);
       S.forklaring = r.text;
       visForklaring(r.text);
+      tell("ki-forklaring");
     } catch (e) {
       if (e && e.text) visForklaring(e.text);
       else $("forklaring").replaceChildren(el("p", { class: "hint", text: "Ingen forklaring ennå." }));
@@ -901,7 +903,7 @@ ${fakta}`;
     if (!S.eksempel) S.forklaring = "";
     visAlt();
     $("panel-plan").scrollIntoView({ behavior: "smooth", block: "start" });
-    if (!S.eksempel && S.plan.ok) forklar();
+    if (!S.eksempel && S.plan.ok) { tell("plan"); forklar(); }
   }
 
   function byttMonster(m) {
@@ -945,7 +947,7 @@ ${fakta}`;
     if (valg && valg.fokus) $(laer ? "fane-laer-knapp" : "fane-plan-knapp").focus();
   }
   $("fane-plan-knapp").addEventListener("click", () => visFane("plan", { rull: true }));
-  $("fane-laer-knapp").addEventListener("click", () => visFane("laer", { rull: true }));
+  $("fane-laer-knapp").addEventListener("click", () => { visFane("laer", { rull: true }); tell("fane-laer"); });
   $("faner").addEventListener("keydown", (e) => {
     const laerNa = !$("fane-laer").hidden;
     let ny = null;
@@ -1139,6 +1141,16 @@ ${fakta}`;
       el("ul", null, g.lenker.map((l) => el("li", null, kildeLenke(l.kilde), el("span", { text: l.om })))),
       g.merknad ? el("p", { class: "merknad", text: g.merknad }) : "")));
     $("les-mer-merknad").textContent = O.lesMerMerknad || "";
+  }
+
+  /* ---------- Besøkstelling (GoatCounter, bare på nettsiden) ----------
+     Teller hendelser uten innhold: om noen bytter fane, får lest inn arealene, lager en plan, får en forklaring eller laster ned PDF. */
+  function tell(navn) {
+    if (!NETT) return;
+    try {
+      const gc = window.goatcounter;
+      if (gc && gc.count) gc.count({ path: "vekstskifte-" + navn, title: "Vekstskiftehjelpen: " + navn, event: true });
+    } catch (e) { /* ingen telling */ }
   }
 
   /* ---------- Last ned planen som PDF ---------- */
@@ -1340,6 +1352,7 @@ ${fakta}`;
       status.textContent = "";
       await nedlasting.save({ filename: navn, data: blob });
       status.textContent = NETT ? "PDF-en er lastet ned." : "PDF-en er lagret.";
+      tell(S.eksempel ? "pdf-eksempel" : "pdf");
     } catch (e) {
       const k = e && e.code;
       if (k === "declined") status.textContent = "";

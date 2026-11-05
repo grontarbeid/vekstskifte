@@ -11,7 +11,7 @@ Ansvarlig: Grønt arbeid Nordvik, org.nr. 936 885 403. Laget med Claude (Anthrop
 
 | Mappe / fil | Hva |
 |---|---|
-| `public/` | Selve nettsiden: HTML, skript, bilder, fonter. Alt hentes fra vekstskifte.no. Unntaket er besøkstelleren til Cloudflare (Web Analytics). |
+| `public/` | Selve nettsiden: HTML, skript, bilder, fonter. Alt hentes fra vekstskifte.no, bortsett fra besøkstellerne (GoatCounter og Cloudflare Web Analytics). |
 | `public/kb.js` | Kunnskapsbasen: plantefamilier, pauser, grønnsaker og kilder. |
 | `public/engine.js` | Regelmotoren som lager planen. |
 | `public/prompter.js` | Instruksene til Claude. |
@@ -57,7 +57,12 @@ Siden kjører da på http://localhost:8787.
 
 ## Personvern
 
-Siden bruker ingen informasjonskapsler og lagrer ikke det brukerne skriver. Når noen ber om KI-hjelp, sendes beskrivelsen av arealene eller planen til Claude hos Anthropic. Anthropic bruker ikke data fra API-et til å trene modeller og sletter dem innen 30 dager. Besøk telles anonymt med Cloudflare Web Analytics, uten informasjonskapsler. Telleren slås av og på under *vekstskifte.no → Analytics & Logs → Web Analytics* hos Cloudflare; skriptet er tillatt i `public/_headers`.
+Siden bruker ingen informasjonskapsler og lagrer ikke det brukerne skriver. Når noen ber om KI-hjelp, sendes beskrivelsen av arealene eller planen til Claude hos Anthropic. Anthropic bruker ikke data fra API-et til å trene modeller og sletter dem innen 30 dager. Besøk telles anonymt, uten informasjonskapsler, på to måter:
+
+- **GoatCounter**, i samme teller som okologiskitall.no: https://okologiskitall.goatcounter.com. Sidene står med domenet foran (`vekstskifte.no/`), og hendelsene heter `vekstskifte-…` (fane-laer, ki-arealer, plan, ki-forklaring, pdf, pdf-eksempel). Oppsettet ligger i `public/goatcounter.js` og `kilde/bygg.py` (`GOATCOUNTER`).
+- **Cloudflare Web Analytics**, slått på for domenet hos Cloudflare (*vekstskifte.no → Analytics & Logs → Web Analytics*).
+
+Skriptene er tillatt i innholdssikkerhetsregelen i `public/_headers`.
 
 ## Lisenser for tredjepartsinnhold
 

@@ -28,6 +28,8 @@ GOOGLE_FONTER = """<link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Schibsted+Grotesk:ital,wght@0,400;0,500;0,700;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">"""
 
+GOATCOUNTER = "https://okologiskitall.goatcounter.com/count"
+
 EGNE_FONTER = """<link rel="preload" href="fonter/fraunces-latin-opsz-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonter/schibsted-grotesk-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="fonter/fonter.css">"""
@@ -88,11 +90,16 @@ def bygg_nett():
     s2 = t.index('</script>', s1)
     app = t[s1:s2].strip() + "\n"
     hoved = t[:start] + '<script src="kb.js"></script>\n<script src="engine.js"></script>\n<script src="prompter.js"></script>\n<script src="app.js"></script>' + t[s2 + len('</script>'):]
+    # Besøkstelling uten informasjonskapsler, i samme GoatCounter som okologiskitall.no.
+    # Sidene telles som «vekstskifte.no/…», så de skilles fra okologiskitall.no. Se public/goatcounter.js.
+    k = hoved.rindex('</script>') + len('</script>')
+    hoved = hoved[:k] + '\n<script src="goatcounter.js"></script>\n<script data-goatcounter="' + GOATCOUNTER + '" async src="https://gc.zgo.at/count.js"></script>' + hoved[k:]
     # Alt til og med første </style> hører hjemme i <head>
     k = hoved.index('</style>') + len('</style>')
     html = (NETT_HODE + "<style>*,*::before,*::after{box-sizing:border-box}body{margin:0}[hidden]{display:none!important}</style>\n"
             + hoved[:k].strip() + "\n</head>\n<body>\n" + hoved[k:].strip() + "\n</body>\n</html>\n")
     for rest in ("__", "fonts.googleapis", "cdnjs.cloudflare"):
+        # (gc.zgo.at er GoatCounter og skal være med)
         if rest in html.replace("__proto__", ""):
             sys.exit(f"Fant «{rest}» i index.html")
     (PUB / "index.html").write_text(html, encoding="utf-8")
